@@ -1,18 +1,13 @@
-## Getting Started
+## Simulazione della Propagazione di un Incendio
 
-Welcome to the VS Code Java world. Here is a guideline to help you get started to write Java code in Visual Studio Code.
+Progetto di tesi di Tomatis Matteo. Lo scopo dell'applicativo e' quello di simulare la propagazione di un incendio e mostrarlo visivamente a partire dai dati climatici e ambientali inseriti dall'utente. Il programma si basa sui dati del db Wildfires che raccoglie informazioni sugli incendi in sardegna nel decennio 2010-2019. Il db puo' essere scaricato [qui](https://www.kaggle.com/datasets/christianmolliere/wildfires-and-climate-in-sardinia), tuttavia non e' necessario farlo per far funzionare il programma.
 
-## Folder Structure
+## Utilizzare l'Applicazione
 
-The workspace contains two folders by default, where:
-
-- `src`: the folder to maintain sources
-- `lib`: the folder to maintain dependencies
-
-Meanwhile, the compiled output files will be generated in the `bin` folder by default.
-
-> If you want to customize the folder structure, open `.vscode/settings.json` and update the related settings there.
-
-## Dependency Management
-
-The `JAVA PROJECTS` view allows you to manage your dependencies. More details can be found [here](https://github.com/microsoft/vscode-java-dependency#manage-dependencies).
+L'applicazione e' stata sviluppata utilizzando Virtual Studio Code, pertanto le segunti istruzioni fanno riferimento a tale IDE. Al fine di utilizzare l'applicazione occorre:
+1. Creare un fork del progetto
+2. Importare il progetto sul proprio PC
+3. Dal proprio IDE selezionare il comando di apertura di una cartella, navigare attraverso i file del proprio PC fino alla cartella "Tesi" contenuta all'interno del progetto e selezionarla
+4. Scaricare [qui](https://gluonhq.com/products/javafx/) i file SDK adatti al proprio sistema operativo ed estrarre la cartella zip, poi aprire la cartella e copiare l'indirizzo della sottocartella "lib"
+5. All'interno dei file del progetto selezionare il file "launch.json" contenuto in .vscode e sostituire il module path "D:/Downloads/openjfx-21.0.1_windows-x64_bin-sdk/javafx-sdk-21.0.1/lib" con l'indirizzo precedentemente copiato
+6. Ora e' possibile runnare il programma direttamente dal file "Main" nella cartella src.javacode.controller
