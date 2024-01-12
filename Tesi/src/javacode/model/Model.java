@@ -30,6 +30,9 @@ public class Model {
 	Matrix variablesCoefficients; //matrix containing the coefficient compute with the multiple linear regression method
 	double burned_area; //km2 of burned area for patches
 	double vegDensity; //density of vegetation
+
+	List<Pixel> visitedPixels = new ArrayList<Pixel>();
+	double totalBurnedArea = 0;
 	
 	public Model() {
 		dao = new WildfiresDAO();
@@ -51,7 +54,7 @@ public class Model {
 
 		Matrix data = new Matrix(input, input.length); 
         
-        this.burned_area = this.variablesCoefficients.transpose().times(data).get(0, 0);
+        this.totalBurnedArea = this.variablesCoefficients.transpose().times(data).get(0, 0);
 	}
 	
 	/*
@@ -182,56 +185,53 @@ public class Model {
     }
 
 
-	public WritableImage spreadFire(ImageView mapImg) {
-		Double pixelArea = 4.0 / (600 * 600);
+	public WritableImage yield(ImageView mapImg) {
+		Double pixelArea = 2.5 * 2.5 / (150 * 150);
 
-		// Ottieni l'immagine dall'ImageView
 		Image image = mapImg.getImage();
-	
-		// Verifica se l'immagine nell'ImageView è un'istanza di WritableImage
-		if (image instanceof WritableImage) {
-			WritableImage writableImage = (WritableImage) image;
-			PixelWriter pixelWriter = writableImage.getPixelWriter();
-	
+		WritableImage writableImage = (WritableImage) image;
+		PixelWriter pixelWriter = writableImage.getPixelWriter();
 
-			// Trova la componente connessa più grande nel grafo
-			List<Pixel> largestConnectedComponent = findLargestConnectedComponent();
-
-			// Seleziona un pixel casuale dalla componente connessa più grande
-			if (!largestConnectedComponent.isEmpty()) {
-				int randomIndex = (int) (Math.random() * largestConnectedComponent.size());
-				Pixel startingPixel = largestConnectedComponent.get(randomIndex);
+		if(!this.visitedPixels.isEmpty() && this.burned_area < this.totalBurnedArea) {
+			this.burned_area += pixelArea;
+			int randomIndex = (int) (Math.random() * this.visitedPixels.size());
+			Pixel currentPixel = this.visitedPixels.remove(randomIndex);
+			currentPixel.setBurned();
+			
+			// Colora il quadrato associato di nero
+			int x = currentPixel.getX() * 4;
+			int y = currentPixel.getY() * 4;
+			Color colore = Math.random()>0.05 ? Color.BLACK : Color.DARKORANGE;
+			disegnaQuadrato(pixelWriter, x, y, 4, colore);
 		
-				// Colora il pixel e i suoi adiacenti fino a raggiungere l'area bruciata desiderata
-				double totalBurnedArea = 0;
-				List<Pixel> visitedPixels = new ArrayList<>();
-				visitedPixels.add(startingPixel);
-				totalBurnedArea += pixelArea;
-		
-				while (totalBurnedArea < burned_area && !visitedPixels.isEmpty()) {
-					Pixel currentPixel = visitedPixels.remove(0); // Prendi il primo pixel dalla lista
-		
-					// Colora il quadrato associato di nero
-					int x = currentPixel.getX() * 4;
-					int y = currentPixel.getY() * 4;
-					Color colore = Math.random()>0.2 ? Color.BLACK : Color.DARKORANGE;
-					disegnaQuadrato(pixelWriter, x, y, 4, colore);
-		
-					// Aggiungi i pixel adiacenti alla lista dei visitati
-					List<Pixel> adjacentPixels = getAdjacentPixels(currentPixel);
-					for (Pixel adjacentPixel : adjacentPixels) {
-						if (!visitedPixels.contains(adjacentPixel) && adjacentPixel.getStatus() && (visitedPixels.size() < 3 || Math.random() > 0.5) ) {
-							visitedPixels.add(adjacentPixel);
-							totalBurnedArea += pixelArea;
-						}
-					}
+			// Aggiungi i pixel adiacenti alla lista dei visitati
+			List<Pixel> adjacentPixels = getAdjacentPixels(currentPixel);
+			for (Pixel adjacentPixel : adjacentPixels) {
+				if (!visitedPixels.contains(adjacentPixel) && adjacentPixel.getStatus() && !adjacentPixel.getBurned()) {
+					visitedPixels.add(adjacentPixel);
 				}
 			}
 
 			return writableImage;
+		} else {
+			return null;
 		}
+		
+	}
 
-		return null;
+	public void spreadFire() {
+		this.visitedPixels.clear();
+		this.burned_area = 0;
+
+		// Trova la componente connessa più grande nel grafo
+		List<Pixel> largestConnectedComponent = findLargestConnectedComponent();
+
+		// Seleziona un pixel casuale dalla componente connessa più grande
+		if (!largestConnectedComponent.isEmpty()) {
+			int randomIndex = (int) (Math.random() * largestConnectedComponent.size());
+			Pixel startingPixel = largestConnectedComponent.get(randomIndex);
+			this.visitedPixels.add(startingPixel);
+		}
 	}
 	
 	private List<Pixel> getAdjacentPixels(Pixel pixel) {

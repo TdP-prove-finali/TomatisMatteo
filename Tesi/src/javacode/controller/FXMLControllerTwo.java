@@ -5,6 +5,8 @@ import java.net.URL;
 import java.util.ResourceBundle;
 
 import javacode.model.Model;
+import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -59,20 +61,36 @@ public class FXMLControllerTwo {
     }
 
     @FXML
-    void startFire(ActionEvent event) {
+    void startFire(ActionEvent event) throws InterruptedException {
         this.text.setText("Aggiornamento in corso...");
 
-        WritableImage updatedImage = this.model.spreadFire(this.mapImg);
+        this.model.spreadFire();
 
-        if (updatedImage != null) {
-            this.mapImg.setImage(updatedImage);
-            this.text.setText("Aggiornamento completato");
-        } else {
-            this.text.setText("Si è verificato un errore nell'aggiornamento");
-        }
+        // Aggiorna l'interfaccia utente dopo ciascun aggiornamento dell'immagine
+        Task<Void> task = new Task<>() {
+            @Override
+            protected Void call() throws InterruptedException {
+                WritableImage updatedImage = model.yield(mapImg);
+                while (updatedImage != null) {
+                    updateImageView(updatedImage);
+                    Thread.sleep(5);
+                    updatedImage = model.yield(mapImg);
+                }
+                return null;
+            }
+        };
+
+        new Thread(task).start();
 
         this.fireButton.setDisable(true);
     }
+
+
+    @FXML
+    private void updateImageView(WritableImage updatedImage) {
+        Platform.runLater(() -> mapImg.setImage(updatedImage));
+    }
+
 
     @FXML
     void initialize() {
