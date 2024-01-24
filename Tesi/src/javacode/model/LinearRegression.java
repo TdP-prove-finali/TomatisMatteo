@@ -60,9 +60,8 @@ public class LinearRegression {
 	}
 
 	 /**
-     * Unit tests the {@code MultipleLinearRegression} data type.
+     * Test of the linear regression.
      *
-     * @param args the command-line arguments
      */
     public static void main(String[] args) {
         WildfiresDAO dao = new WildfiresDAO();

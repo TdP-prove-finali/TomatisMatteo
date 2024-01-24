@@ -3,6 +3,7 @@ package javacode.model;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 import org.jgrapht.Graph;
@@ -33,52 +34,13 @@ public class Model {
 
 	List<Pixel> visitedPixels = new ArrayList<Pixel>();
 	double totalBurnedArea = 0;
+
+	int numberOfCC = 0;
+	float maxCCsize = 0;
 	
 	public Model() {
 		dao = new WildfiresDAO();
 		regr = new LinearRegression();
-	}
-	
-
-	public void setVegDensity(double density) {
-		this.vegDensity = density;
-	}
-
-	/*
-	 * Compute the burned area for patches using the coefficients obtained thanks to the multiple linear regression
-	 * 
-	 * @param a list containing all the user input
-	 */
-	public void setBurnedArea(double[] input) {
-		setVariablesCoefficients();
-
-		Matrix data = new Matrix(input, input.length); 
-        
-        this.totalBurnedArea = this.variablesCoefficients.transpose().times(data).get(0, 0);
-	}
-	
-	/*
-	 * Compute the coefficients for the variables using the data contained in the db
-	 * 
-	 */
-	private void setVariablesCoefficients() {
-		
-		double[][] xMatrix =  dao.variablesData();
-		double[] listOfResultsM = dao.resultsData();
-		double[] numPatches = dao.getPatches();
-		
-		double[] yMatrix = new double[listOfResultsM.length];
-		
-		for(int i=0; i<listOfResultsM.length; i++) {
-			
-			double d = listOfResultsM[i];
-			double d_2 = d/1000000; //from m2 to km2
-			double d_3 = d_2/numPatches[i]; //burned area for a single patche
-			
-			yMatrix[i] = d_3;
-		}
-		
-		this.variablesCoefficients = regr.findCoefficients(xMatrix, yMatrix);
 	}
 	
 	/*
@@ -184,9 +146,31 @@ public class Model {
         }
     }
 
+	/*
+	 * Set the variables to start a fire
+	 * 
+	 */	
+	public void spreadFire() {
+		this.visitedPixels.clear();
+		this.burned_area = 0;
 
+		// Trova la componente connessa più grande nel grafo
+		List<Pixel> largestConnectedComponent = findLargestConnectedComponent();
+
+		// Seleziona un pixel casuale dalla componente connessa più grande
+		if (!largestConnectedComponent.isEmpty()) {
+			int randomIndex = (int) (Math.random() * largestConnectedComponent.size());
+			Pixel startingPixel = largestConnectedComponent.get(randomIndex);
+			this.visitedPixels.add(startingPixel);
+		}
+	}
+
+	/*
+	 * To modify an image pixel by pixel until return null
+	 * 
+	 */	
 	public WritableImage yield(ImageView mapImg) {
-		Double pixelArea = 2.5 * 2.5 / (150 * 150);
+		Double pixelArea = 2.5 * 2.5 / (148 * 148);
 
 		Image image = mapImg.getImage();
 		WritableImage writableImage = (WritableImage) image;
@@ -219,21 +203,35 @@ public class Model {
 		
 	}
 
-	public void spreadFire() {
-		this.visitedPixels.clear();
-		this.burned_area = 0;
+	/*
+	 * To modify an image of the graph, showing all the connected components
+	 * 
+	 */	
+	public WritableImage showConnectedComponents(ImageView img) {
+		Image image = img.getImage();
+		WritableImage writableImage = (WritableImage) image;
+		PixelWriter pixelWriter = writableImage.getPixelWriter();
+		Random random = new Random();
 
-		// Trova la componente connessa più grande nel grafo
-		List<Pixel> largestConnectedComponent = findLargestConnectedComponent();
+		List<List<Pixel>> connecLists = findAllConnectedComponents();
 
-		// Seleziona un pixel casuale dalla componente connessa più grande
-		if (!largestConnectedComponent.isEmpty()) {
-			int randomIndex = (int) (Math.random() * largestConnectedComponent.size());
-			Pixel startingPixel = largestConnectedComponent.get(randomIndex);
-			this.visitedPixels.add(startingPixel);
+		for(List<Pixel> connList : connecLists) {
+			Color colore = Color.rgb(random.nextInt(256), random.nextInt(256), random.nextInt(256));
+			for(Pixel p : connList) {
+				// Colora il quadrato associato di nero
+				int x = p.getX() * 4;
+				int y = p.getY() * 4;
+				disegnaQuadrato(pixelWriter, x, y, 4, colore);
+			}
 		}
+
+		return writableImage;
 	}
 	
+	/*
+	 * Find all the pixel connected to the input object
+	 * 
+	 */	
 	private List<Pixel> getAdjacentPixels(Pixel pixel) {
 		List<Pixel> adjacentPixels = new ArrayList<>();
 
@@ -251,6 +249,10 @@ public class Model {
 		return adjacentPixels;
 	}
 	
+	/*
+	 * Find the pixel contained in the largest connected component of the graph
+	 * 
+	 */	
 	public List<Pixel> findLargestConnectedComponent() {
 		ConnectivityInspector<Pixel, DefaultEdge> inspector = new  ConnectivityInspector<Pixel, DefaultEdge>(this.graph);
 
@@ -270,10 +272,98 @@ public class Model {
 				}
 			}
 		}
-		
+
+		this.maxCCsize = lPixels.size();
 		return lPixels;
 	}
 
+    public double getBurnedArea() {
+        return this.burned_area;
+    }
+
+	/*
+	 * Find all the connected components of the graph
+	 * 
+	 */	
+	public List<List<Pixel>> findAllConnectedComponents() {
+        ConnectivityInspector<Pixel, DefaultEdge> inspector = new ConnectivityInspector<>(this.graph);
+
+        Set<Pixel> remainingVertices = new HashSet<>(this.graph.vertexSet());
+        List<List<Pixel>> connectedComponents = new ArrayList<>();
+
+        while (!remainingVertices.isEmpty()) {
+            Pixel startVertex = remainingVertices.iterator().next();
+            Set<Pixel> component = inspector.connectedSetOf(startVertex);
+
+            remainingVertices.removeAll(component); // Non analizzare di nuovo questa componente
+            connectedComponents.add(new ArrayList<>(component));
+        }
+
+		this.numberOfCC = connectedComponents.size();
+		findLargestConnectedComponent();
+        return connectedComponents;
+    }
+
+	public int getNumberOfCC() {
+		return this.numberOfCC;
+	}
+
+
+	public float getMaxCCsixe() {
+		return this.maxCCsize;
+	}
+
+
+	public String getTotalBurnedArea() {
+		return String.format("%.2f", this.totalBurnedArea);
+	}
+
+
+    public String getVegExtension() {
+		Double pixelArea = 2.5 * 2.5 / (148 * 148);
+        return String.format("%.2f", this.graph.vertexSet().size() * pixelArea);
+    }
+
+	public void setVegDensity(double density) {
+		this.vegDensity = density;
+	}
+
+	/*
+	 * Compute the burned area for patches using the coefficients obtained thanks to the multiple linear regression
+	 * 
+	 * @param a list containing all the user input
+	 */
+	public void setBurnedArea(double[] input) {
+		setVariablesCoefficients();
+
+		Matrix data = new Matrix(input, input.length); 
+        
+        this.totalBurnedArea = this.variablesCoefficients.transpose().times(data).get(0, 0);
+	}
+	
+	/*
+	 * Compute the coefficients for the variables using the data contained in the db
+	 * 
+	 */
+	private void setVariablesCoefficients() {
+		
+		double[][] xMatrix =  dao.variablesData();
+		double[] listOfResultsM = dao.resultsData();
+		double[] numPatches = dao.getPatches();
+		
+		double[] yMatrix = new double[listOfResultsM.length];
+		
+		for(int i=0; i<listOfResultsM.length; i++) {
+			
+			double d = listOfResultsM[i];
+			double d_2 = d/1000000; //from m2 to km2
+			double d_3 = d_2/numPatches[i]; //burned area for a single patche
+			
+			yMatrix[i] = d_3;
+		}
+		
+		this.variablesCoefficients = regr.findCoefficients(xMatrix, yMatrix);
+	}
 
 }
 
