@@ -69,7 +69,7 @@ public class LinearRegression {
         LinearRegression regression = new LinearRegression();
 		
 		double[][] x = dao.variablesData();
-		double[] y = dao.resultsData();
+		double[] y = dao.resultsData("burned_area");
 
 		regression.findCoefficients(x, y);
 

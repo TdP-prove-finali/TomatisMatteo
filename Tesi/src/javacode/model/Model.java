@@ -2,10 +2,14 @@ package javacode.model;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Random;
 import java.util.Set;
 
+import org.apache.commons.math3.distribution.NormalDistribution;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.connectivity.ConnectivityInspector;
 import org.jgrapht.graph.DefaultDirectedGraph;
@@ -28,12 +32,16 @@ public class Model {
 	private List<List<Pixel>> pixelMap;
 	
 	double obsKm2 = 24000; //total surface observable (km^2)
-	Matrix variablesCoefficients; //matrix containing the coefficient compute with the multiple linear regression method
+	Matrix variablesCoefficients4Mean; //matrix containing the coefficient compute with the multiple linear regression method
+	Matrix variableCoefficients4Error; //matrix containing the coefficient for the standard error
 	double burned_area; //km2 of burned area for patches
 	double vegDensity; //density of vegetation
+	NormalDistribution distribution;
 
-	List<Pixel> visitedPixels = new ArrayList<Pixel>();
+	PriorityQueue<Pixel> queue;
+	Map<Double, Pixel> distances;
 	double totalBurnedArea = 0;
+	double standardError = 0;
 
 	int numberOfCC = 0;
 	float maxCCsize = 0;
@@ -41,6 +49,46 @@ public class Model {
 	public Model() {
 		dao = new WildfiresDAO();
 		regr = new LinearRegression();
+
+		this.vegDensity = dao.getVegDensity();
+	}
+
+	/*
+	 * Draw the map of the forest & the graph
+	 * 
+	 */
+	public WritableImage getMap() {
+		int larghezzaImmagine = 600;
+        int altezzaImmagine = 600;
+        int dimensioneQuadrato = 4;
+        int numeroRighe = altezzaImmagine / dimensioneQuadrato;
+        int numeroColonne = larghezzaImmagine / dimensioneQuadrato;
+
+        WritableImage writableImage = new WritableImage(larghezzaImmagine, altezzaImmagine);
+        PixelWriter pixelWriter = writableImage.getPixelWriter();
+        
+        this.pixelMap = new ArrayList<List<Pixel>>();
+
+        for (int riga = 1; riga < numeroRighe-1; riga++) {
+        	List<Pixel> pixelList = new ArrayList<>();
+            for (int colonna = 1; colonna < numeroColonne-1; colonna++) {
+				double prob = Math.random();
+				if(prob>this.vegDensity) {
+					pixelList.add(new Pixel(riga, colonna, false));
+                	Color colore = Color.WHITE;
+                	disegnaQuadrato(pixelWriter, riga * dimensioneQuadrato, colonna * dimensioneQuadrato, dimensioneQuadrato, colore);
+				} else{
+					pixelList.add(new Pixel(riga, colonna, true));
+                	Color colore = (riga + colonna) % 2 == 0 ? Color.GREEN : Color.DARKGREEN;
+                	disegnaQuadrato(pixelWriter, riga * dimensioneQuadrato, colonna * dimensioneQuadrato, dimensioneQuadrato, colore);
+				}
+            }
+			this.pixelMap.add(pixelList);
+        }
+
+		buildGraph();
+
+		return writableImage;
 	}
 	
 	/*
@@ -96,43 +144,6 @@ public class Model {
 		}
 	}
 	
-	/*
-	 * Draw the map of the forest & the graph
-	 * 
-	 */
-	public WritableImage getMap() {
-		int larghezzaImmagine = 600;
-        int altezzaImmagine = 600;
-        int dimensioneQuadrato = 4;
-        int numeroRighe = altezzaImmagine / dimensioneQuadrato;
-        int numeroColonne = larghezzaImmagine / dimensioneQuadrato;
-
-        WritableImage writableImage = new WritableImage(larghezzaImmagine, altezzaImmagine);
-        PixelWriter pixelWriter = writableImage.getPixelWriter();
-        
-        this.pixelMap = new ArrayList<List<Pixel>>();
-
-        for (int riga = 1; riga < numeroRighe-1; riga++) {
-        	List<Pixel> pixelList = new ArrayList<>();
-            for (int colonna = 1; colonna < numeroColonne-1; colonna++) {
-				double prob = Math.random();
-				if(prob>this.vegDensity) {
-					pixelList.add(new Pixel(riga, colonna, false));
-                	Color colore = Color.WHITE;
-                	disegnaQuadrato(pixelWriter, riga * dimensioneQuadrato, colonna * dimensioneQuadrato, dimensioneQuadrato, colore);
-				} else{
-					pixelList.add(new Pixel(riga, colonna, true));
-                	Color colore = (riga + colonna) % 2 == 0 ? Color.GREEN : Color.DARKGREEN;
-                	disegnaQuadrato(pixelWriter, riga * dimensioneQuadrato, colonna * dimensioneQuadrato, dimensioneQuadrato, colore);
-				}
-            }
-			this.pixelMap.add(pixelList);
-        }
-
-		buildGraph();
-
-		return writableImage;
-	}
 	
 	/*
 	 * Find the coordinates of a square, given the relative pixel (i.e. vertex of the graph)
@@ -151,17 +162,29 @@ public class Model {
 	 * 
 	 */	
 	public void spreadFire() {
-		this.visitedPixels.clear();
+		
+		this.queue = new PriorityQueue<>();
 		this.burned_area = 0;
 
-		// Trova la componente connessa più grande nel grafo
-		List<Pixel> largestConnectedComponent = findLargestConnectedComponent();
+		//set the normal distribution
+		this.distribution = new NormalDistribution(this.totalBurnedArea/this.vegDensity, this.standardError/this.vegDensity);
 
-		// Seleziona un pixel casuale dalla componente connessa più grande
-		if (!largestConnectedComponent.isEmpty()) {
-			int randomIndex = (int) (Math.random() * largestConnectedComponent.size());
-			Pixel startingPixel = largestConnectedComponent.get(randomIndex);
-			this.visitedPixels.add(startingPixel);
+		//seleziona un pixel random
+		Random random = new Random();
+        int randomIndex = random.nextInt(this.graph.vertexSet().size());
+		Iterator<Pixel> iterator = this.graph.vertexSet().iterator();
+		Pixel startingPixel = null;
+        for (int i = 0; i <= randomIndex; i++) {
+            startingPixel = iterator.next();
+        }
+
+		//compute the distances form any node and insert it in the queue
+		this.queue = new PriorityQueue<>();
+		for(Pixel p : this.graph.vertexSet()) {
+			double euclidianDistance = Math.sqrt(Math.pow(p.getX() - startingPixel.getX(), 2) + Math.pow(p.getY() - startingPixel.getY(), 2));
+			double kmDistance = euclidianDistance*2.5/148;
+			p.setDistance(kmDistance);
+			this.queue.add(p);
 		}
 	}
 
@@ -176,26 +199,27 @@ public class Model {
 		WritableImage writableImage = (WritableImage) image;
 		PixelWriter pixelWriter = writableImage.getPixelWriter();
 
-		if(!this.visitedPixels.isEmpty() && this.burned_area < this.totalBurnedArea) {
+		if(!this.queue.isEmpty()) {
+			/*
 			this.burned_area += pixelArea;
 			int randomIndex = (int) (Math.random() * this.visitedPixels.size());
 			Pixel currentPixel = this.visitedPixels.remove(randomIndex);
 			currentPixel.setBurned();
-			
-			// Colora il quadrato associato di nero
-			int x = currentPixel.getX() * 4;
-			int y = currentPixel.getY() * 4;
-			Color colore = Math.random()>0.05 ? Color.BLACK : Color.DARKORANGE;
-			disegnaQuadrato(pixelWriter, x, y, 4, colore);
-		
-			// Aggiungi i pixel adiacenti alla lista dei visitati
-			List<Pixel> adjacentPixels = getAdjacentPixels(currentPixel);
-			for (Pixel adjacentPixel : adjacentPixels) {
-				if (!visitedPixels.contains(adjacentPixel) && adjacentPixel.getStatus() && !adjacentPixel.getBurned()) {
-					visitedPixels.add(adjacentPixel);
-				}
-			}
+			*/
+			Pixel currentPixel = this.queue.poll();
 
+
+			double pseudoArea = Math.PI*Math.pow(currentPixel.getDistance(), 2);	
+			double prob = 1 - this.distribution.cumulativeProbability(pseudoArea);
+
+			if(Math.random()<=prob) {
+				this.burned_area += pixelArea;
+				// Brucia il quadrato associato
+				int x = currentPixel.getX() * 4;
+				int y = currentPixel.getY() * 4;
+				Color colore = Math.random()>0.05 ? Color.BLACK : Color.DARKORANGE;
+				disegnaQuadrato(pixelWriter, x, y, 4, colore);
+			}
 			return writableImage;
 		} else {
 			return null;
@@ -231,7 +255,7 @@ public class Model {
 	/*
 	 * Find all the pixel connected to the input object
 	 * 
-	 */	
+	 * 
 	private List<Pixel> getAdjacentPixels(Pixel pixel) {
 		List<Pixel> adjacentPixels = new ArrayList<>();
 
@@ -248,6 +272,7 @@ public class Model {
 	
 		return adjacentPixels;
 	}
+	*/
 	
 	/*
 	 * Find the pixel contained in the largest connected component of the graph
@@ -277,10 +302,6 @@ public class Model {
 		return lPixels;
 	}
 
-    public double getBurnedArea() {
-        return this.burned_area;
-    }
-
 	/*
 	 * Find all the connected components of the graph
 	 * 
@@ -308,25 +329,22 @@ public class Model {
 		return this.numberOfCC;
 	}
 
+    public double getBurnedArea() {
+        return this.burned_area;
+    }
 
 	public float getMaxCCsixe() {
 		return this.maxCCsize;
 	}
 
-
 	public String getTotalBurnedArea() {
 		return String.format("%.2f", this.totalBurnedArea);
 	}
-
 
     public String getVegExtension() {
 		Double pixelArea = 2.5 * 2.5 / (148 * 148);
         return String.format("%.2f", this.graph.vertexSet().size() * pixelArea);
     }
-
-	public void setVegDensity(double density) {
-		this.vegDensity = density;
-	}
 
 	/*
 	 * Compute the burned area for patches using the coefficients obtained thanks to the multiple linear regression
@@ -338,7 +356,8 @@ public class Model {
 
 		Matrix data = new Matrix(input, input.length); 
         
-        this.totalBurnedArea = this.variablesCoefficients.transpose().times(data).get(0, 0);
+        this.totalBurnedArea = this.variablesCoefficients4Mean.transpose().times(data).get(0, 0);
+		this.standardError = this.variableCoefficients4Error.transpose().times(data).get(0, 0);
 	}
 	
 	/*
@@ -348,21 +367,28 @@ public class Model {
 	private void setVariablesCoefficients() {
 		
 		double[][] xMatrix =  dao.variablesData();
-		double[] listOfResultsM = dao.resultsData();
+		double[] listOfMeans = dao.resultsData("burned_area");
+		double[] listOfError = dao.resultsData("standard_error");
 		double[] numPatches = dao.getPatches();
 		
-		double[] yMatrix = new double[listOfResultsM.length];
+		double[] meanMatrix = new double[listOfMeans.length];
+		double[] errorMatrix = new double[listOfError.length];
 		
-		for(int i=0; i<listOfResultsM.length; i++) {
+		for(int i=0; i<listOfMeans.length; i++) {
 			
-			double d = listOfResultsM[i];
-			double d_2 = d/1000000; //from m2 to km2
-			double d_3 = d_2/numPatches[i]; //burned area for a single patche
+			double m = listOfMeans[i];
+			double e = listOfError[i];
+			double m2 = m/1000000; //from m2 to km2
+			double e2 = e/1000000; 
+			double m3 = m2/numPatches[i]; //burned area for a single patche
+			double e3 = e2/numPatches[i];
 			
-			yMatrix[i] = d_3;
+			meanMatrix[i] = m3;
+			errorMatrix[i] = e3;
 		}
 		
-		this.variablesCoefficients = regr.findCoefficients(xMatrix, yMatrix);
+		this.variablesCoefficients4Mean = regr.findCoefficients(xMatrix, meanMatrix);
+		this.variableCoefficients4Error = regr.findCoefficients(xMatrix, errorMatrix);
 	}
 
 }

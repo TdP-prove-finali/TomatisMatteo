@@ -24,10 +24,10 @@ public class FXMLControllerOne {
     private ResourceBundle resources;
 
     @FXML
-    private URL location;
+    private ImageView rainImg;
 
     @FXML
-    private TextField pInput;
+    private URL location;
 
     @FXML
     private TextField rainInput;
@@ -36,7 +36,13 @@ public class FXMLControllerOne {
     private Button startButton;
 
     @FXML
+    private ImageView tempImg;
+
+    @FXML
     private TextField temperatureInput;
+    
+    @FXML
+    private ImageView windImg;
 
     @FXML
     private TextField windInput;
@@ -54,6 +60,7 @@ public class FXMLControllerOne {
 
             model.setBurnedArea(input);
 
+            /* 
             double vegDensity = Double.parseDouble(this.pInput.getText());
 
             if(vegDensity <= 1 && vegDensity > 0) {
@@ -62,6 +69,7 @@ public class FXMLControllerOne {
                 mostraAlertErrore("Si è verificato un errore", "Controllare di aver rispettato i valori massimi e mininmi della densita' di vegetazione");
                 return;
             }
+            */
 
             try {
                 Stage stage = (Stage) startButton.getScene().getWindow();
@@ -104,11 +112,14 @@ public class FXMLControllerOne {
 
     @FXML
     void initialize() {
-        assert pInput != null : "fx:id=\"pInput\" was not injected: check your FXML file 'prova-tesi.fxml'.";
-        assert rainInput != null : "fx:id=\"rainInput\" was not injected: check your FXML file 'prova-tesi.fxml'.";
-        assert startButton != null : "fx:id=\"startButton\" was not injected: check your FXML file 'prova-tesi.fxml'.";
-        assert temperatureInput != null : "fx:id=\"temperatureInput\" was not injected: check your FXML file 'prova-tesi.fxml'.";
-        assert windInput != null : "fx:id=\"windInput\" was not injected: check your FXML file 'prova-tesi.fxml'.";
+        assert rainImg != null : "fx:id=\"rainImg\" was not injected: check your FXML file 'pag-1.fxml'.";
+        assert rainInput != null : "fx:id=\"rainInput\" was not injected: check your FXML file 'pag-1.fxml'.";
+        assert startButton != null : "fx:id=\"startButton\" was not injected: check your FXML file 'pag-1.fxml'.";
+        assert tempImg != null : "fx:id=\"tempImg\" was not injected: check your FXML file 'pag-1.fxml'.";
+        assert temperatureInput != null : "fx:id=\"temperatureInput\" was not injected: check your FXML file 'pag-1.fxml'.";
+        assert windImg != null : "fx:id=\"windImg\" was not injected: check your FXML file 'pag-1.fxml'.";
+        assert windInput != null : "fx:id=\"windInput\" was not injected: check your FXML file 'pag-1.fxml'.";
+
 
     }
 

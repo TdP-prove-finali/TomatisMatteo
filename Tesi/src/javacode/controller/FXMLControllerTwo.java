@@ -78,7 +78,7 @@ public class FXMLControllerTwo {
             this.backImageView = copyImage(this.mapImg.getImage());
         }
 
-        this.text.setText("Incendio in corso...");
+        this.text.setText("Simulazione incendio in corso...");
 
         this.model.spreadFire();
 
