@@ -31,17 +31,17 @@ public class Model {
     Graph<Pixel, DefaultEdge> graph;
 	private List<List<Pixel>> pixelMap;
 	
-	double obsKm2 = 24000; //total surface observable (km^2)
 	Matrix variablesCoefficients4Mean; //matrix containing the coefficient compute with the multiple linear regression method
 	Matrix variableCoefficients4Error; //matrix containing the coefficient for the standard error
-	double burned_area; //km2 of burned area for patches
+	double totalBurnedArea = 0; //km2 of burned area for patches
+	double standardError = 0;
 	double vegDensity; //density of vegetation
 	NormalDistribution distribution;
+	
+	double burned_area;
 
 	PriorityQueue<Pixel> queue;
 	Map<Double, Pixel> distances;
-	double totalBurnedArea = 0;
-	double standardError = 0;
 
 	int numberOfCC = 0;
 	float maxCCsize = 0;
@@ -200,21 +200,19 @@ public class Model {
 		PixelWriter pixelWriter = writableImage.getPixelWriter();
 
 		if(!this.queue.isEmpty()) {
-			/*
-			this.burned_area += pixelArea;
-			int randomIndex = (int) (Math.random() * this.visitedPixels.size());
-			Pixel currentPixel = this.visitedPixels.remove(randomIndex);
-			currentPixel.setBurned();
-			*/
 			Pixel currentPixel = this.queue.poll();
 
 
 			double pseudoArea = Math.PI*Math.pow(currentPixel.getDistance(), 2);	
 			double prob = 1 - this.distribution.cumulativeProbability(pseudoArea);
 
+			//improve speed by eliminating very unlikely burnable pixel
+			if(prob<Math.pow(10, -5)) {
+				return null;
+			}
+
 			if(Math.random()<=prob) {
 				this.burned_area += pixelArea;
-				// Brucia il quadrato associato
 				int x = currentPixel.getX() * 4;
 				int y = currentPixel.getY() * 4;
 				Color colore = Math.random()>0.05 ? Color.BLACK : Color.DARKORANGE;
@@ -251,28 +249,6 @@ public class Model {
 
 		return writableImage;
 	}
-	
-	/*
-	 * Find all the pixel connected to the input object
-	 * 
-	 * 
-	private List<Pixel> getAdjacentPixels(Pixel pixel) {
-		List<Pixel> adjacentPixels = new ArrayList<>();
-
-		for (DefaultEdge edge : graph.edgesOf(pixel)) {
-			Pixel neighbor = graph.getEdgeTarget(edge);
-			if (neighbor.equals(pixel)) {
-				neighbor = graph.getEdgeSource(edge);
-			}
-	
-			if (neighbor.getStatus()) {
-				adjacentPixels.add(neighbor);
-			}
-		}
-	
-		return adjacentPixels;
-	}
-	*/
 	
 	/*
 	 * Find the pixel contained in the largest connected component of the graph

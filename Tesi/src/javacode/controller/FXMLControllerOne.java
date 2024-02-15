@@ -60,17 +60,6 @@ public class FXMLControllerOne {
 
             model.setBurnedArea(input);
 
-            /* 
-            double vegDensity = Double.parseDouble(this.pInput.getText());
-
-            if(vegDensity <= 1 && vegDensity > 0) {
-                this.model.setVegDensity(vegDensity);
-            } else {
-                mostraAlertErrore("Si è verificato un errore", "Controllare di aver rispettato i valori massimi e mininmi della densita' di vegetazione");
-                return;
-            }
-            */
-
             try {
                 Stage stage = (Stage) startButton.getScene().getWindow();
                 stage.close();
@@ -79,7 +68,7 @@ public class FXMLControllerOne {
                 Parent root = loader.load();
                 Scene scene = new Scene(root, 700, 500);
                 scene.getRoot().setStyle("-fx-font-family: 'Verdana'");
-                primaryStage.setTitle("Simulazione");
+                primaryStage.setTitle("Simulazione Incendio");
                 
                 FXMLControllerTwo controller = loader.getController();
                 controller.setModel(this.model);
@@ -97,7 +86,7 @@ public class FXMLControllerOne {
         }
     }
 
-    // Metodo per mostrare un Alert di errore
+    // Show an allert with a pop-up
     @FXML
     private void mostraAlertErrore(String titolo, String messaggio) {
         Alert alert = new Alert(AlertType.ERROR);
@@ -105,7 +94,6 @@ public class FXMLControllerOne {
         alert.setHeaderText(titolo);
         alert.setContentText(messaggio);
 
-        // Mostriamo e attendiamo che l'utente prema il pulsante "OK" per chiudere l'Alert
         alert.showAndWait();
     }
 

@@ -13,10 +13,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.image.PixelReader;
-import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
@@ -26,9 +23,6 @@ public class FXMLControllerTwo {
     private Model model;
 
     @FXML
-    private Image backImageView; //salvataggio immagine originale
-
-    @FXML
     private ResourceBundle resources;
 
     @FXML
@@ -36,9 +30,6 @@ public class FXMLControllerTwo {
 
     @FXML
     private Button fireButton;
-
-    @FXML
-    private Button ccButton;
 
     @FXML
     private Button quitbutton;
@@ -61,7 +52,7 @@ public class FXMLControllerTwo {
             controller.setModel(this.model);
             Scene scene = new Scene(root, 700, 500);
             scene.getRoot().setStyle("-fx-font-family: 'Verdana'");
-            primaryStage.setTitle("Simulazione");
+            primaryStage.setTitle("Simulazione Incendio");
             primaryStage.setScene(scene);
             primaryStage.show();
          } catch (IOException e) {
@@ -71,18 +62,12 @@ public class FXMLControllerTwo {
 
     @FXML
     void startFire(ActionEvent event) throws InterruptedException {
-        
-        if(this.backImageView!=null) {
-            this.mapImg.setImage(backImageView);
-        } else {
-            this.backImageView = copyImage(this.mapImg.getImage());
-        }
 
         this.text.setText("Simulazione incendio in corso...");
 
         this.model.spreadFire();
 
-        // Aggiorna l'interfaccia utente dopo ciascun aggiornamento dell'immagine
+        // Upload the image after every change of pixel
         Task<Void> task = new Task<>() {
             @Override
             protected Void call() throws InterruptedException {
@@ -93,17 +78,19 @@ public class FXMLControllerTwo {
                     updatedImage = model.yield(mapImg);
                 }
                 fireButton.setDisable(true);
-                text.setText("Area boschiva totale: " + model.getVegExtension() + " Km^2\nArea bruciata: " + String.format("%.2f", model.getBurnedArea()) + 
-                " Km^2\nMassima estensione dell'incendio possibile: " + model.getTotalBurnedArea() + " Km^2\n");
+                text.setText("Area boschiva totale: " + model.getVegExtension() + " Km^2\nArea bruciata nella simulazione: " + String.format("%.2f", model.getBurnedArea()) + 
+                " Km^2\nEstensione dell'incendio teorica: " + model.getTotalBurnedArea() + " Km^2\n");
                 return null;
             }
         };
 
         new Thread(task).start();
 
-        this.ccButton.setDisable(false);
     }
 
+    /*
+     * Canceled because not more useful
+     * 
     @FXML
     void showCC(ActionEvent event) {
         if(this.backImageView == null) {
@@ -117,7 +104,7 @@ public class FXMLControllerTwo {
         + "% dello spazio.");
         
     }
-
+    */
 
     @FXML
     private void updateImageView(WritableImage updatedImage) {
@@ -125,29 +112,7 @@ public class FXMLControllerTwo {
     }
 
     @FXML
-      public static Image copyImage(Image originalImage) {
-        int width = (int) originalImage.getWidth();
-        int height = (int) originalImage.getHeight();
-
-        WritableImage writableImage = new WritableImage(width, height);
-        PixelReader pixelReader = originalImage.getPixelReader();
-        PixelWriter pixelWriter = writableImage.getPixelWriter();
-
-        // Copia pixel da originalImage a writableImage
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                int color = pixelReader.getArgb(x, y);
-                pixelWriter.setArgb(x, y, color);
-            }
-        }
-
-        return writableImage;
-    }
-
-
-    @FXML
     void initialize() {
-        assert ccButton != null : "fx:id=\"ccButton\" was not injected: check your FXML file 'pag-2.fxml'.";
         assert fireButton != null : "fx:id=\"fireButton\" was not injected: check your FXML file 'pag-2.fxml'.";
         assert mapImg != null : "fx:id=\"mapImg\" was not injected: check your FXML file 'pag-2.fxml'.";
         assert quitbutton != null : "fx:id=\"quitbutton\" was not injected: check your FXML file 'pag-2.fxml'.";

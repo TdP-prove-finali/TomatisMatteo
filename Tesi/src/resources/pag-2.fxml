@@ -9,21 +9,16 @@
 <Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="500.0" prefWidth="700.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="javacode.controller.FXMLControllerTwo">
    <children>
       <ImageView fx:id="mapImg" fitHeight="400.0" fitWidth="400.0" layoutX="27.0" layoutY="37.0" pickOnBounds="true" preserveRatio="true" />
-      <Button fx:id="quitbutton" layoutX="25.0" layoutY="456.0" mnemonicParsing="false" onAction="#goBack" text="Torna Indietro">
+      <Button fx:id="quitbutton" layoutX="59.0" layoutY="456.0" mnemonicParsing="false" onAction="#goBack" text="Torna Indietro">
          <font>
             <Font name="System Italic" size="14.0" />
          </font></Button>
-      <Button fx:id="fireButton" layoutX="491.0" layoutY="407.0" mnemonicParsing="false" onAction="#startFire" text="Mostra Incendio">
+      <Button fx:id="fireButton" layoutX="267.0" layoutY="456.0" mnemonicParsing="false" onAction="#startFire" text="Mostra Incendio">
          <font>
             <Font name="System Bold" size="14.0" />
          </font></Button>
       <Text fx:id="text" layoutX="428.0" layoutY="50.0" strokeType="OUTSIDE" strokeWidth="0.0" wrappingWidth="252.800048828125" />
-      <Text fx:id="text1" layoutX="205.0" layoutY="27.0" strokeType="OUTSIDE" strokeWidth="0.0" text="2.5 km" textAlignment="CENTER" wrappingWidth="44.79998779296875" />
-      <Text fx:id="text11" layoutX="-14.0" layoutY="255.0" rotate="270.0" strokeType="OUTSIDE" strokeWidth="0.0" text="2.5 km" textAlignment="CENTER" wrappingWidth="56.0" />
-      <Button fx:id="ccButton" layoutX="492.0" layoutY="449.0" mnemonicParsing="false" onAction="#showCC" prefHeight="30.0" prefWidth="125.0" text="Mostra CC">
-         <font>
-            <Font name="System Bold" size="14.0" />
-         </font>
-      </Button>
+      <Text layoutX="205.0" layoutY="27.0" strokeType="OUTSIDE" strokeWidth="0.0" text="2.5 km" textAlignment="CENTER" wrappingWidth="44.79998779296875" />
+      <Text layoutX="-14.0" layoutY="255.0" rotate="270.0" strokeType="OUTSIDE" strokeWidth="0.0" text="2.5 km" textAlignment="CENTER" wrappingWidth="56.0" />
    </children>
 </Pane>
