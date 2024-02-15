@@ -1,6 +1,7 @@
 ## Simulazione della Propagazione di un Incendio
 
 Progetto di tesi di Tomatis Matteo. Lo scopo dell'applicativo e' quello di simulare la propagazione di un incendio e mostrarlo visivamente a partire dai dati climatici e ambientali inseriti dall'utente. Il programma si basa sui dati del db Wildfires che raccoglie informazioni sugli incendi in sardegna nel decennio 2010-2019. Il db puo' essere scaricato [qui](https://www.kaggle.com/datasets/christianmolliere/wildfires-and-climate-in-sardinia), tuttavia non e' necessario farlo per far funzionare il programma.
+E' presente a [questo link](https://www.youtube.com/watch?v=W1OcCziKHfE) un video dimostrativo del funzionamento del programma.
 
 ## Utilizzare l'Applicazione
 
